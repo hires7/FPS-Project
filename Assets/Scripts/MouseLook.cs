@@ -4,6 +4,8 @@ using UnityEngine.InputSystem;
 public class MouseLook : MonoBehaviour
 {
     public float mouseSensitivity = 100f;
+    public float topClamp = -90f;
+    public float bottomClamp = 60f; 
     
     public InputAction lookAction;
 
@@ -37,7 +39,7 @@ public class MouseLook : MonoBehaviour
         float mouseY = mouseDelta.y * mouseSensitivity * Time.deltaTime;
 
         xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+        xRotation = Mathf.Clamp(xRotation, topClamp, bottomClamp);
 
         transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
 
