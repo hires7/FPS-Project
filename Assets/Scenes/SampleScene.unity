@@ -514,7 +514,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 19adb196c20bfca108fcb21beec5bde7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  speed: 5
+  actualCameraTransform: {fileID: 330585546}
+  runningCamForwardOffset: 0.15
+  crouchingCamForwardOffset: 0.25
+  camOffsetSmoothSpeed: 8
+  walkSpeed: 5
+  crouchSpeed: 3
   gravity: -9.81
   animator: {fileID: 462463945}
   crouchAction:
