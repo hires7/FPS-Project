@@ -8,7 +8,7 @@ public class KeyPressUI : MonoBehaviour
 
     void Update()
     {
-        string pressedKeys = "Stlacene klavesy: \n";
+        string pressedKeys = "Pressed Keys: \n";
         bool isAnyKeyPressed = false;
 
         if (Keyboard.current != null)
@@ -43,7 +43,7 @@ public class KeyPressUI : MonoBehaviour
         }
         else
         {
-            uiText.text = "Nestlacena ziadna klavesa";
+            uiText.text = "No keys pressed";
         }
     }
 }
