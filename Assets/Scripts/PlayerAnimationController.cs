@@ -1,5 +1,7 @@
 using UnityEngine;
 
+// Animator dostane stav až po aktualizácii pohybu.
+[DefaultExecutionOrder(100)]
 public class PlayerAnimationController : MonoBehaviour
 {
     [Header("References")]
@@ -9,11 +11,10 @@ public class PlayerAnimationController : MonoBehaviour
 
     void Update()
     {
+        float movementSpeed = Mathf.Min(input.MoveDirection.magnitude, 1f) * locomotion.CurrentSpeed;
 
-        float realMovementSpeed = input.MoveDirection.magnitude * locomotion.CurrentSpeed;
-        
-        animator.SetFloat("Speed", realMovementSpeed);
-
+        animator.SetFloat("Speed", movementSpeed);
         animator.SetBool("IsCrouching", locomotion.IsCrouched);
+        animator.SetBool("IsGrounded", locomotion.IsGrounded);
     }
 }
