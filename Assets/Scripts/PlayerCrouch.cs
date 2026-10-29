@@ -1,15 +1,16 @@
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
-public class PlayerCrouch : MonoBehaviour
+[DisallowMultipleComponent]
+public sealed class PlayerCrouch : MonoBehaviour
 {
     [Min(0.1f)]
-    public float crouchingHeight = 1.2f;
+    [SerializeField] private float crouchingHeight = 1.2f;
 
     [Min(0f)]
-    public float clearance = 0.02f;
+    [SerializeField] private float clearance = 0.02f;
 
-    public LayerMask obstructionMask = ~0;
+    [SerializeField] private LayerMask obstructionMask = ~0;
 
     public bool IsCrouched { get; private set; }
 
@@ -90,5 +91,20 @@ public class PlayerCrouch : MonoBehaviour
         }
 
         return true;
+    }
+
+    private void OnValidate()
+    {
+        clearance = Mathf.Max(0f, clearance);
+
+        CharacterController currentController = GetComponent<CharacterController>();
+        if (currentController != null)
+        {
+            crouchingHeight = Mathf.Clamp(
+                crouchingHeight,
+                currentController.radius * 2f,
+                currentController.height
+            );
+        }
     }
 }

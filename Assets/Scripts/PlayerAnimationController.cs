@@ -1,20 +1,34 @@
 using UnityEngine;
 
-// Animator dostane stav až po aktualizácii pohybu.
+// Animator receives state after input and locomotion have updated.
 [DefaultExecutionOrder(100)]
-public class PlayerAnimationController : MonoBehaviour
+[DisallowMultipleComponent]
+public sealed class PlayerAnimationController : MonoBehaviour
 {
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
+    private static readonly int IsCrouchingHash = Animator.StringToHash("IsCrouching");
+    private static readonly int IsGroundedHash = Animator.StringToHash("IsGrounded");
+
     [Header("References")]
-    public Animator animator;
-    public PlayerLocomotion locomotion;
-    public PlayerInput input;
+    [SerializeField] private Animator animator;
+    [SerializeField] private PlayerLocomotion locomotion;
+    [SerializeField] private PlayerInput input;
 
-    void Update()
+    private void Awake()
     {
-        float movementSpeed = Mathf.Min(input.MoveDirection.magnitude, 1f) * locomotion.CurrentSpeed;
+        if (animator == null || locomotion == null || input == null)
+        {
+            Debug.LogError("PlayerAnimationController references are not configured.", this);
+            enabled = false;
+        }
+    }
 
-        animator.SetFloat("Speed", movementSpeed);
-        animator.SetBool("IsCrouching", locomotion.IsCrouched);
-        animator.SetBool("IsGrounded", locomotion.IsGrounded);
+    private void Update()
+    {
+        float normalizedSpeed = Mathf.Clamp01(input.MoveDirection.magnitude);
+
+        animator.SetFloat(SpeedHash, normalizedSpeed);
+        animator.SetBool(IsCrouchingHash, locomotion.IsCrouched);
+        animator.SetBool(IsGroundedHash, locomotion.IsGrounded);
     }
 }

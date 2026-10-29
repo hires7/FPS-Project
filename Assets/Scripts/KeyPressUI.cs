@@ -1,49 +1,74 @@
-using UnityEngine;
+using System.Text;
 using TMPro;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class KeyPressUI : MonoBehaviour
+[DisallowMultipleComponent]
+public sealed class KeyPressUI : MonoBehaviour
 {
-    public TextMeshProUGUI uiText;
+    [SerializeField] private TextMeshProUGUI uiText;
 
-    void Update()
+    private readonly StringBuilder textBuilder = new(128);
+    private string lastText;
+
+    private void Awake()
     {
-        string pressedKeys = "Pressed Keys: \n";
-        bool isAnyKeyPressed = false;
+        if (uiText == null)
+        {
+            Debug.LogError("KeyPressUI requires a TextMeshProUGUI reference.", this);
+            enabled = false;
+        }
+    }
+
+    private void Update()
+    {
+        textBuilder.Clear();
+        textBuilder.Append("Pressed Keys:\n");
+        bool hasInput = false;
 
         if (Keyboard.current != null)
         {
             foreach (var key in Keyboard.current.allKeys)
             {
-                if (key.isPressed)
+                if (!key.isPressed)
                 {
-                    pressedKeys += "[" + key.displayName + "] ";
-                    isAnyKeyPressed = true;
+                    continue;
                 }
+
+                AppendInput(key.displayName);
+                hasInput = true;
             }
         }
 
         if (Mouse.current != null)
         {
-            if (Mouse.current.leftButton.isPressed) 
-            { 
-                pressedKeys += "[LMB] "; 
-                isAnyKeyPressed = true; 
+            if (Mouse.current.leftButton.isPressed)
+            {
+                AppendInput("LMB");
+                hasInput = true;
             }
-            if (Mouse.current.rightButton.isPressed) 
-            { 
-                pressedKeys += "[RMB] "; 
-                isAnyKeyPressed = true; 
+
+            if (Mouse.current.rightButton.isPressed)
+            {
+                AppendInput("RMB");
+                hasInput = true;
             }
         }
 
-        if (isAnyKeyPressed)
+        string currentText = hasInput ? textBuilder.ToString() : "No keys pressed";
+        if (currentText == lastText)
         {
-            uiText.text = pressedKeys;
+            return;
         }
-        else
-        {
-            uiText.text = "No keys pressed";
-        }
+
+        lastText = currentText;
+        uiText.SetText(currentText);
+    }
+
+    private void AppendInput(string displayName)
+    {
+        textBuilder.Append('[');
+        textBuilder.Append(displayName);
+        textBuilder.Append("] ");
     }
 }

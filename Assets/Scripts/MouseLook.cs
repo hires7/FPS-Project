@@ -1,48 +1,96 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class MouseLook : MonoBehaviour
+[DisallowMultipleComponent]
+public sealed class MouseLook : MonoBehaviour
 {
-    public float mouseSensitivity = 100f;
-    public float topClamp = -90f;
-    public float bottomClamp = 60f; 
-    
-    public InputAction lookAction;
+    [Header("References")]
+    [SerializeField] private PlayerInput input;
+    [SerializeField] private Transform playerBody;
 
-    public Transform playerBody;
+    [Header("Look Settings")]
+    [Min(0f)]
+    [SerializeField] private float mouseSensitivity = 0.1f;
+    [Min(0f)]
+    [SerializeField] private float stickDegreesPerSecond = 180f;
+    [SerializeField] private float minPitch = -90f;
+    [SerializeField] private float maxPitch = 75f;
 
-    private float xRotation = 0f;
+    private float pitch;
+    private bool cursorLocked;
 
-    void OnEnable()
+    private void Awake()
     {
-        lookAction.Enable();
+        if (input == null || playerBody == null)
+        {
+            Debug.LogError("MouseLook references are not configured.", this);
+            enabled = false;
+            return;
+        }
+
+        pitch = NormalizeAngle(transform.localEulerAngles.x);
     }
 
-    void OnDisable()
+    private void OnEnable()
     {
-        lookAction.Disable();
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        SetCursorLocked(true);
     }
 
-    void Start()
+    private void OnDisable()
     {
-        Cursor.lockState = CursorLockMode.Locked; 
-        Cursor.visible = false;
+        SetCursorLocked(false);
     }
 
-    void Update()
+    private void Update()
     {
-        Vector2 mouseDelta = lookAction.ReadValue<Vector2>();
+        HandleCursorLock();
+        if (!cursorLocked)
+        {
+            return;
+        }
 
-        float mouseX = mouseDelta.x * mouseSensitivity * Time.deltaTime;
-        float mouseY = mouseDelta.y * mouseSensitivity * Time.deltaTime;
+        Vector2 lookDelta = input.LookDirection;
+        lookDelta *= input.LookUsesPointerDelta
+            ? mouseSensitivity
+            : stickDegreesPerSecond * Time.unscaledDeltaTime;
 
-        xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, topClamp, bottomClamp);
+        pitch = Mathf.Clamp(pitch - lookDelta.y, minPitch, maxPitch);
+        transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        playerBody.Rotate(Vector3.up, lookDelta.x, Space.Self);
+    }
 
-        transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+    private void HandleCursorLock()
+    {
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            SetCursorLocked(false);
+        }
+        else if (!cursorLocked && Mouse.current != null
+            && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            SetCursorLocked(true);
+        }
+    }
 
-        playerBody.Rotate(Vector3.up * mouseX);
+    private void SetCursorLocked(bool isLocked)
+    {
+        cursorLocked = isLocked;
+        Cursor.lockState = isLocked ? CursorLockMode.Locked : CursorLockMode.None;
+        Cursor.visible = !isLocked;
+    }
+
+    private void OnValidate()
+    {
+        mouseSensitivity = Mathf.Max(0f, mouseSensitivity);
+        stickDegreesPerSecond = Mathf.Max(0f, stickDegreesPerSecond);
+        if (minPitch > maxPitch)
+        {
+            (minPitch, maxPitch) = (maxPitch, minPitch);
+        }
+    }
+
+    private static float NormalizeAngle(float angle)
+    {
+        return angle > 180f ? angle - 360f : angle;
     }
 }

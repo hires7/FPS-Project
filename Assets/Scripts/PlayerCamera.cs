@@ -1,41 +1,65 @@
 using UnityEngine;
 
-public class PlayerCamera : MonoBehaviour
+[DisallowMultipleComponent]
+public sealed class PlayerCamera : MonoBehaviour
 {
     [Header("References")]
-    public PlayerLocomotion locomotion;
-    public Transform cameraRoot;
-    public Transform actualCamera;
+    [SerializeField] private PlayerLocomotion locomotion;
+    [SerializeField] private Transform cameraRoot;
+    [SerializeField] private Transform actualCamera;
 
     [Header("Height Settings")]
-    public float standingHeight = 0.96f;
-    public float crouchingHeight = 0.1f;
-    public float heightSmoothSpeed = 10f;
+    [SerializeField] private float standingHeight = 0.96f;
+    [SerializeField] private float crouchingHeight = 0.1f;
+    [Min(0f)]
+    [SerializeField] private float heightSmoothSpeed = 10f;
 
     [Header("Forward Offset Settings")]
-    public float runningForwardOffset = 0.2f;
-    public float crouchingForwardOffset = 0.35f;
-    public float offsetSmoothSpeed = 8f;
+    [SerializeField] private float movingForwardOffset = 0.2f;
+    [SerializeField] private float sprintingForwardOffset = 0.3f;
+    [SerializeField] private float crouchingForwardOffset = 0.35f;
+    [Min(0f)]
+    [SerializeField] private float offsetSmoothSpeed = 8f;
 
-    void Update()
+    private void Awake()
     {
-        float targetHeight = locomotion.IsCrouched ? crouchingHeight : standingHeight;
-        Vector3 rootPos = cameraRoot.localPosition;
-        rootPos.y = Mathf.Lerp(rootPos.y, targetHeight, heightSmoothSpeed * Time.deltaTime);
-        cameraRoot.localPosition = rootPos;
+        if (locomotion == null || cameraRoot == null || actualCamera == null)
+        {
+            Debug.LogError("PlayerCamera references are not configured.", this);
+            enabled = false;
+        }
+    }
 
-        float targetZOffset = 0f;
+    private void LateUpdate()
+    {
+        float heightTarget = locomotion.IsCrouched ? crouchingHeight : standingHeight;
+        float heightBlend = DampFactor(heightSmoothSpeed);
+        Vector3 rootPosition = cameraRoot.localPosition;
+        rootPosition.y = Mathf.Lerp(rootPosition.y, heightTarget, heightBlend);
+        cameraRoot.localPosition = rootPosition;
+
+        float offsetTarget = 0f;
         if (locomotion.IsCrouched)
         {
-            targetZOffset = crouchingForwardOffset;
+            offsetTarget = crouchingForwardOffset;
+        }
+        else if (locomotion.IsSprinting)
+        {
+            offsetTarget = sprintingForwardOffset;
         }
         else if (locomotion.IsMovingForward)
         {
-            targetZOffset = runningForwardOffset;
+            offsetTarget = movingForwardOffset;
         }
 
-        Vector3 camPos = actualCamera.localPosition;
-        camPos.z = Mathf.Lerp(camPos.z, targetZOffset, offsetSmoothSpeed * Time.deltaTime);
-        actualCamera.localPosition = camPos;
+        float offsetBlend = DampFactor(offsetSmoothSpeed);
+        Vector3 cameraPosition = actualCamera.localPosition;
+        cameraPosition.z = Mathf.Lerp(cameraPosition.z, offsetTarget, offsetBlend);
+        actualCamera.localPosition = cameraPosition;
+    }
+
+    private static float DampFactor(float speed)
+    {
+        return 1f - Mathf.Exp(-speed * Time.deltaTime);
     }
 }

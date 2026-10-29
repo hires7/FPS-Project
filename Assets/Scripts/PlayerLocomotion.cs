@@ -3,37 +3,45 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerInput))]
 [RequireComponent(typeof(PlayerCrouch))]
-public class PlayerLocomotion : MonoBehaviour
+[DisallowMultipleComponent]
+public sealed class PlayerLocomotion : MonoBehaviour
 {
     [Header("Movement")]
-    public float walkSpeed = 5f;
-    public float crouchSpeed = 3f;
+    [Min(0f)]
+    [SerializeField] private float walkSpeed = 5f;
+
+    [Min(0f)]
+    [SerializeField] private float sprintSpeed = 8f;
+
+    [Min(0f)]
+    [SerializeField] private float crouchSpeed = 3f;
 
     [Header("Jump")]
     [Min(0f)]
-    public float jumpHeight = 1.2f;
+    [SerializeField] private float jumpHeight = 1.2f;
 
-    public float gravity = -30f;
+    [SerializeField] private float gravity = -30f;
 
     [Range(0f, 1f)]
-    public float jumpCutMultiplier = 0.5f;
+    [SerializeField] private float jumpCutMultiplier = 0.5f;
 
     [Min(1f)]
-    public float fallGravityMultiplier = 1.8f;
+    [SerializeField] private float fallGravityMultiplier = 1.8f;
 
     [Min(0.1f)]
-    public float maxFallSpeed = 35f;
+    [SerializeField] private float maxFallSpeed = 35f;
 
     [Header("Jump Forgiveness")]
     [Min(0f)]
-    public float coyoteTime = 0.1f;
+    [SerializeField] private float coyoteTime = 0.1f;
 
     [Min(0f)]
-    public float jumpBufferTime = 0.12f;
+    [SerializeField] private float jumpBufferTime = 0.12f;
 
     public bool IsCrouched => crouch != null && crouch.IsCrouched;
     public float CurrentSpeed { get; private set; }
     public bool IsMovingForward { get; private set; }
+    public bool IsSprinting { get; private set; }
     public bool IsGrounded { get; private set; }
     public float VerticalSpeed { get; private set; }
 
@@ -68,8 +76,11 @@ public class PlayerLocomotion : MonoBehaviour
             crouch.TryToggle();
         }
 
-        CurrentSpeed = IsCrouched ? crouchSpeed : walkSpeed;
         IsMovingForward = input.MoveDirection.y > 0.1f;
+        IsSprinting = !IsCrouched && IsMovingForward && input.SprintHeld;
+        CurrentSpeed = IsCrouched
+            ? crouchSpeed
+            : IsSprinting ? sprintSpeed : walkSpeed;
     }
 
     private void UpdateGroundState()
@@ -171,7 +182,17 @@ public class PlayerLocomotion : MonoBehaviour
 
         if (IsGrounded)
         {
+            lastGroundedTime = Time.time;
             VerticalSpeed = -2f;
         }
+    }
+
+    private void OnValidate()
+    {
+        walkSpeed = Mathf.Max(0f, walkSpeed);
+        sprintSpeed = Mathf.Max(walkSpeed, sprintSpeed);
+        crouchSpeed = Mathf.Clamp(crouchSpeed, 0f, walkSpeed);
+        gravity = Mathf.Min(-0.01f, gravity);
+        maxFallSpeed = Mathf.Max(0.1f, maxFallSpeed);
     }
 }
